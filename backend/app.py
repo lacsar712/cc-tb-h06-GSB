@@ -6,7 +6,7 @@ from flask import Flask, redirect, render_template, request, session, url_for
 from psycopg2.extras import RealDictCursor
 
 from rules import weigh
-from pass_polish import polish_after_write, map_rows, map_detail
+from verdict_view import map_rows, map_detail, map_list_row
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "tea-cupping-dev-secret")
@@ -84,12 +84,9 @@ def create():
             (lot, aroma, taste, liquor, score, verdict, note, session["user"]),
         )
         row = cur.fetchone()
-        v, n = polish_after_write(row["verdict"], row["note"])
-        cur.execute("UPDATE cuppings SET verdict=%s, note=%s WHERE id=%s RETURNING *", (v, n, row["id"]))
-        row = cur.fetchone()
         conn.commit()
     if request.headers.get("HX-Request"):
-        return render_template("_row.html", row=row)
+        return render_template("_row.html", row=map_list_row(dict(row)))
     return redirect(url_for("home"))
 
 
