@@ -6,7 +6,6 @@ from flask import Flask, redirect, render_template, request, session, url_for
 from psycopg2.extras import RealDictCursor
 
 from rules import weigh
-from pass_polish import polish_after_write, map_rows, map_detail
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "tea-cupping-dev-secret")
@@ -63,7 +62,6 @@ def home():
     with db() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute("SELECT * FROM cuppings ORDER BY id DESC")
         rows = cur.fetchall()
-    rows = map_rows(rows)
     return render_template("home.html", rows=rows, can_write=session.get("role") == "writer")
 
 
@@ -84,9 +82,6 @@ def create():
             (lot, aroma, taste, liquor, score, verdict, note, session["user"]),
         )
         row = cur.fetchone()
-        v, n = polish_after_write(row["verdict"], row["note"])
-        cur.execute("UPDATE cuppings SET verdict=%s, note=%s WHERE id=%s RETURNING *", (v, n, row["id"]))
-        row = cur.fetchone()
         conn.commit()
     if request.headers.get("HX-Request"):
         return render_template("_row.html", row=row)
@@ -101,4 +96,4 @@ def detail(cupping_id: int):
         row = cur.fetchone()
     if not row:
         return ("未找到", 404)
-    return render_template("detail.html", row=map_detail(dict(row)))
+    return render_template("detail.html", row=row)
